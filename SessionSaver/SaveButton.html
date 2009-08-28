@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<!--Extension: SessionSaver-->
+<head>
+<script type="text/javascript">
+var bgp,is_ts=true;
+function begin(){
+	var v = chrome.self.getViews();
+	for(var i in v){
+		if(v[i].is_bgp){
+			bgp = v[i];
+			bgp.setMeUp(self);
+			return;
+		}
+	}
+	console.log("Could not find background_page.");
+	setTimeout(begin,100);
+}
+
+function toggle_notes(){
+	bgp.toggle_notes();
+}
+
+function toggleMode(){
+	bgp.toggleMode();
+}
+
+var copt;
+function openOpt(th){
+	document.getElementById("notesp").style.display = "none";
+	document.getElementById("optsp").style.display = "none";
+	document.getElementById("colsp").style.display = "inline";
+	setOptCol(document.getElementById(th));
+	copt = th;
+}
+
+function setOptCol(th){
+	var t = th.style.backgroundColor;
+	t = bgp.rgbToHex(t);
+	document.getElementById("optcol").value = t.toUpperCase();
+}
+
+function saveOptCol(){
+	bgp.saveOptCol(document.getElementById("optcol").value,copt);
+	document.getElementById("notesp").style.display = "inline";
+	document.getElementById("optsp").style.display = "inline";
+	document.getElementById("colsp").style.display = "none";
+}
+
+function toolstripPopUpWindow(){
+	bgp.popUpWindowNow();
+}
+</script>
+</head>
+<body onLoad="begin()">
+<div class="toolstrip-button">
+<span id="notesp"><img id="text" src="./save.png" onclick="toolstripPopUpWindow()"/></span>
+<input id="ntext" type="hidden" />
+<input id="nleft" type="hidden" />
+<input id="ntop" type="hidden" />
+<input id="nheight" type="hidden" />
+<input id="nwidth" type="hidden" />
+</div>
+</body>
+</html>

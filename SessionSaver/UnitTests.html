@@ -1,0 +1,220 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head runat="server">
+    <title></title>
+
+<!--menu-->
+	<link rel="stylesheet" href="css/demos.css" media="screen" type="text/css">
+	<script type="text/javascript" src="js/menu-for-applications.js"></script>
+<!--menu-->	
+	<style type="text/css">
+	body{
+		margin:0px;
+	}
+/*YUI*/
+.container2
+{
+	margin:10px;
+	top:25px;
+/* for pre to respect newlines yet wrap long lines */
+/* http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/ */
+    white-space: pre-wrap; /* css-3 */
+    white-space: -moz-pre-wrap !important; /* Mozilla, since 1999 */
+    white-space: -pre-wrap; /* Opera 4-6 */
+    white-space: -o-pre-wrap; /* Opera 7 */
+    word-wrap: break-word; /* Internet Explorer 5.5+ */	
+}
+.yui-log .yui-log-hd {display:none;}
+
+.pass {
+    background-color: green;
+    font-weight: bold;
+    color: white;
+}
+.fail {
+    background-color: red;
+    font-weight: bold;
+    color: white;
+}
+.ignore {
+    background-color: #666;
+    font-weight: bold;
+    color: white;
+}
+/*YUI*/
+
+	</style>
+
+
+<!--YUI-->
+<!-- Dependencies --> 
+<script type="text/javascript" src="yui/yahoo-dom-event.js"></script>
+<script type="text/javascript" src="yui/logger-min.js"></script>
+<!-- Source File -->
+<script type="text/javascript" src="yui/yuitest-min.js"></script>
+<!--Events Begin-->
+<script type="text/javascript" src="yui/yahoo-min.js"></script>
+<script type="text/javascript" src="yui/event-min.js"></script>
+<!--Events End-->
+<!--YUI-->
+
+<script type="text/javascript" src="Include.js"></script>
+
+<!-- Unit Test Dependencies -->
+<script type="text/javascript" src="UnitTestUtil.js"></script>
+<script type="text/javascript" src="StringTests.js"></script>
+<script type="text/javascript" src="BackgroundPage.js"></script>
+<script type="text/javascript" src="BookmarkManager.js"></script>
+<script type="text/javascript" src="BookmarkManagerTests.js"></script>
+<script type="text/javascript" src="Options.js"></script>
+<script type="text/javascript" src="OptionsTests.js"></script>
+
+<script type="text/javascript">
+// UNIT TESTS
+var oLogger;
+
+// Sets up the unit test logger.
+function prepareTests() 
+{
+	var myConfigs = 
+	{
+		left: "0px", 
+		top: "0px",
+		width: "100px", 
+		height: "20em", 
+		newestOnTop: false, 
+		footerEnabled: false
+	}; 
+	oLogger = new YAHOO.tool.TestLogger("container2",myConfigs);
+	oLogger.hideCategory("info");
+}
+
+// Clears previous test output for next run.
+function setupTests()
+{
+	oLogger.clearConsole();
+	YAHOO.tool.TestRunner.clear();
+}
+
+// Runs all test cases.
+function runTests() 
+{
+	setupTests();
+	//run all tests
+	YAHOO.tool.TestRunner.add(testCaseStrings);
+	setupTestBookmarkManager();
+	YAHOO.tool.TestRunner.add(testCaseOptionsSave);
+	YAHOO.tool.TestRunner.run();
+}
+
+function runTestStrings() 
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseStrings);
+	YAHOO.tool.TestRunner.run();
+}
+
+// Adds all the bookmark test cases to the test runner.
+function setupTestBookmarkManager()
+{
+	YAHOO.tool.TestRunner.add(testCaseGetNumBookmarkFolders);	
+	YAHOO.tool.TestRunner.add(testCaseCreateBookmarkFolder);
+	YAHOO.tool.TestRunner.add(testCaseCreateBookmarkItem);
+	YAHOO.tool.TestRunner.add(testCaseGetNumBookmarkItemsStartsWith);
+	YAHOO.tool.TestRunner.add(testCaseGetBookmarkItemInformationStartsWith);		
+	YAHOO.tool.TestRunner.add(testCaseRemoveBookmarkItemAllStartsWith);		
+}
+	
+// Runs all bookmark test cases.
+function runTestBookmarkManager() 
+{
+	setupTests();
+	setupTestBookmarkManager();
+	YAHOO.tool.TestRunner.run();
+}
+
+function runTestGetNumBookmarkFolders() 
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseGetNumBookmarkFolders);
+	YAHOO.tool.TestRunner.run();
+}
+
+function runTestCreateBookmarkFolder() 
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseCreateBookmarkFolder);
+	YAHOO.tool.TestRunner.run();
+}
+
+function runTestCreateBookmarkItem() 
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseCreateBookmarkItem);
+	YAHOO.tool.TestRunner.run();
+}
+	
+function runTestGetNumBookmarkItemsStartsWith()
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseGetNumBookmarkItemsStartsWith);
+	YAHOO.tool.TestRunner.run();
+}
+
+function runTestGetBookmarkItemInformationStartsWith()
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseGetBookmarkItemInformationStartsWith);
+	YAHOO.tool.TestRunner.run();
+}
+
+function runTestRemoveBookmarkItemAllStartsWith()
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseRemoveBookmarkItemAllStartsWith);
+	YAHOO.tool.TestRunner.run();
+}
+
+function runTestOptionsSave()
+{
+	setupTests();
+	YAHOO.tool.TestRunner.add(testCaseOptionsSave);
+	YAHOO.tool.TestRunner.run();
+}
+</script>
+</head>
+<body onload="prepareTests()">
+<div id="menuBarContainer" ></div>
+<div id="container"></div>
+<div class="container2" id="container2"></div>
+
+<script type="text/javascript">
+var menuModel = new DHTMLSuite.menuModel();
+DHTMLSuite.commonObj.setCssCacheStatus(false);
+
+menuModel.addItem(1,'Unit Tests','','',false, 'Click to run unit tests.');
+menuModel.setSubMenuWidth(1,180);
+menuModel.addItem(11,'RunAll','menu_blueplay.png','',1,'Runs all test cases.','runTests()');
+menuModel.addItem(12,'TestStrings','','',1,'Tests the string functions are working as expected.', 'runTestStrings()');
+
+menuModel.addItem(13,'TestBookmarkManager','','',1,'Tests BookmarkManager functions.');
+menuModel.setSubMenuWidth(13,300);
+menuModel.addItem(131,'RunAll','menu_blueplay.png','',13,'Runs all bookmark test cases.','runTestBookmarkManager()');
+menuModel.addItem(132,'TestGetNumBookmarkFolders','','',13,"Tests BookmarkManager::getNumBookmarkFolders() to ensure it returns >=0 [SessionSaverSettings] folders in the Bookmarks bar.", 'runTestGetNumBookmarkFolders()');
+menuModel.addItem(133,'TestCreateBookmarkFolder','','',13,"Tests BookmarkManager::createBookmarkFolder().", 'runTestCreateBookmarkFolder()');
+menuModel.addItem(134,'TestCreateBookmarkItem','','',13,"Tests BookmarkManager::createBookmarkItem()", 'runTestCreateBookmarkItem()');
+menuModel.addItem(135,'TestGetNumBookmarkItemsStartsWith','','',13,"Tests BookmarkManager::getNumBookmarkItemsStartsWith()", 'runTestGetNumBookmarkItemsStartsWith()');
+menuModel.addItem(136,'TestGetBookmarkItemInformationStartsWith','','',13,"Tests BookmarkManager::getBookmarkItemInformationStartsWith()", 'runTestGetBookmarkItemInformationStartsWith()');
+menuModel.addItem(137,'TestRemoveBookmarkItemAllStartsWith','','',13,"Tests BookmarkManager::removeBookmarkItemAllStartsWith()", 'runTestRemoveBookmarkItemAllStartsWith()');
+
+menuModel.addItem(14,'TestOptionsSave','','',1,'Tests saving options is working as expected.', 'runTestOptionsSave()');
+
+menuModel.init();
+var menuBar = new DHTMLSuite.menuBar();
+menuBar.addMenuItems(menuModel);
+menuBar.setTarget('menuBarContainer');
+menuBar.init();
+</script>
+</body>
+</html>

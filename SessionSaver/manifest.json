@@ -1,0 +1,15 @@
+{
+   "name": "Session Saver",
+   "version": "0.16",
+   "description": "A session manager for your browser.",
+   "permissions": [ "tabs", "bookmarks" ],
+   "toolstrips": [ "SaveButton.html" ],
+   "content_scripts": [
+     {
+	    "matches": ["http://*/*","https://*/*"],
+		"js": ["innernote.js"],
+		"run_at": "document_start"
+	 }
+   ],
+   "background_page": "SaveBgp.html"
+}

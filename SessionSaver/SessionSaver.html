@@ -1,0 +1,424 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<!--Extension: SessionSaver-->
+<title>Session Saver</title>
+	<link rel="stylesheet" href="css/demos.css" media="screen" type="text/css">
+	<script type="text/javascript" src="js/menu-for-applications.js"></script>
+	<style type="text/css">
+	body{
+		margin:0px;
+	}
+	</style>
+</head>
+<body>
+<div id="menuBarContainer">
+</div>
+<script type="text/javascript" src="Include.js"></script>
+<script type="text/javascript" src="BackgroundPage.js"></script>
+<script type="text/javascript" src="BookmarkManager.js"></script>
+<script type="text/javascript" src="Options.js"></script>
+<script type="text/javascript">
+
+var g_version = -1.0;
+var g_local = false;
+var g_localLogging = false;
+
+var bgp = window.opener;
+if (bgp==null)
+{
+	// use for testing html in isolation without an opener
+	g_local = true;
+}
+var localOptions = createOptionsWithoutBookmarks();
+function getOptions()
+{
+	if (g_local)
+	{
+		return localOptions;
+	}
+	else
+	{
+		return bgp.getOptions();
+	}
+}
+
+function about()
+{
+	alert("SessionSaver "+g_version+"\nA session manager for your browser.");	
+}
+
+function gotoForum()
+{
+	var url = "http://www.chromeplugins.org/google/chrome-plugins/new-ext-sessionsaver-8101.html";
+	if (g_local)
+	{
+		window.open(url);
+	}
+	else
+	{
+		window.opener.openLinkInNewTabSelected(url);
+		window.open('', '_self', ''); //bug fix, without this next line crashes
+		window.close();
+	}
+}
+function menuExportToBookmarks()
+{
+	window.opener.exportToBookmarks();
+	window.open('', '_self', ''); //bug fix, without this next line crashes
+	window.close();
+}
+
+function openUnitTestWindow()
+{
+	if (g_local)
+	{
+		window.open("UnitTests.html");
+	}
+	else
+	{
+		window.opener.openLinkInNewTabSelected("UnitTests.html");
+		window.open('', '_self', ''); //bug fix, without this next line crashes
+		window.close();
+	}
+}
+function openSystemTestWindow()
+{
+	if (g_local)
+	{
+		window.open("SystemTests.html");
+	}
+	else
+	{
+		window.opener.openLinkInNewTabSelected("SystemTests.html");
+		window.open('', '_self', ''); //bug fix, without this next line crashes
+		window.close();
+	}
+}
+function setLoggingMenuVisibility()
+{
+	if (getOptions().getLogging())
+	{
+		menuModel.menuItems[62].visible = false; //unticked
+		menuModel.menuItems[63].visible = true; //ticked
+	}
+	else
+	{
+		menuModel.menuItems[62].visible = true; //unticked
+		menuModel.menuItems[63].visible = false; //ticked
+	}
+}
+function toggleLogging()
+{
+	getOptions().setLogging(!getOptions().getLogging());
+	setLoggingMenuVisibility();
+	menuBar.deleteAllMenuItems();
+	menuBar.__createMenuItems();
+	getOptions().save();
+}
+function setSaveCurrentWindowOnlyMenuVisibility()
+{
+	if (getOptions().getSaveCurrentWindowOnly())
+	{
+		menuModel.menuItems[51].visible = false; //unticked
+		menuModel.menuItems[52].visible = true; //ticked
+	}
+	else
+	{
+		menuModel.menuItems[51].visible = true; //unticked
+		menuModel.menuItems[52].visible = false; //ticked
+	}
+}
+function toggleSaveCurrentWindowOnly()
+{
+	getOptions().setSaveCurrentWindowOnly(!getOptions().getSaveCurrentWindowOnly());
+	setSaveCurrentWindowOnlyMenuVisibility();
+	menuBar.deleteAllMenuItems();
+	menuBar.__createMenuItems();
+	getOptions().save();
+}
+function setCloseSavedTabsMenuVisibility()
+{
+	if (getOptions().getCloseSavedTabs())
+	{
+		menuModel.menuItems[53].visible = false; //unticked
+		menuModel.menuItems[54].visible = true; //ticked
+	}
+	else
+	{
+		menuModel.menuItems[53].visible = true; //unticked
+		menuModel.menuItems[54].visible = false; //ticked
+	}
+}
+function toggleCloseSavedTabs()
+{
+	getOptions().setCloseSavedTabs(!getOptions().getCloseSavedTabs());
+	setCloseSavedTabsMenuVisibility();
+	menuBar.deleteAllMenuItems();
+	menuBar.__createMenuItems();
+	getOptions().save();
+}
+
+// First menu
+var menuModel = new DHTMLSuite.menuModel();
+DHTMLSuite.commonObj.setCssCacheStatus(false);
+
+menuModel.addItem(4,'Tools','','',false,'Contains tools for users and developers.');
+menuModel.setSubMenuWidth(4,180);
+
+//Options are planned for next release.
+menuModel.addItem(5,'Options','menu_spanner.png','',4);
+menuModel.setSubMenuWidth(5,200);
+menuModel.addItem(51,'Save current window only','menu_untick.png','',5,'When saving session, only saves tabs from current window','toggleSaveCurrentWindowOnly()');
+menuModel.addItem(52,'Save current window only','menu_tick.png','',5,'When saving session, only saves tabs from current window','toggleSaveCurrentWindowOnly()');
+setSaveCurrentWindowOnlyMenuVisibility();
+menuModel.addItem(53,'Close saved tabs','menu_untick.png','',5,'When saving session saved tabs are closed','toggleCloseSavedTabs()');
+menuModel.addItem(54,'Close saved tabs','menu_tick.png','',5,'When saving session saved tabs are closed','toggleCloseSavedTabs()');
+setCloseSavedTabsMenuVisibility();
+
+menuModel.addItem(6,'Developer','menu_devmag.png','',4,'Contains tools for developers.');
+menuModel.setSubMenuWidth(6,150);
+menuModel.addItem(61,'Unit Tests','menu_tickreport.png','',6,'Opens the unit testing window.','openUnitTestWindow()');
+menuModel.addItem(64,'System Tests','menu_tickreport.png','',6,'Opens the system testing window.','openSystemTestWindow()');
+
+menuModel.addItem(62,'Enable Logging','menu_untick.png','',6,'Enables console.log messages in Developer Tools.','toggleLogging()');
+menuModel.addItem(63,'Enable Logging','menu_tick.png','',6,'Enables console.log messages in Developer Tools.','toggleLogging()');
+setLoggingMenuVisibility();
+
+menuModel.addItem(7,'Export to Bookmarks','menu_book.png','',4,'Exports all saved sessions to bookmarks under "Other Bookmarks\\Your Saved Sessions" in a timestamped sub folder.','menuExportToBookmarks();');
+
+menuModel.addItem(40,'Help','','',false,'Contains help for Session Saver.');
+menuModel.setSubMenuWidth(40,180);
+menuModel.addItem(41,'About','menu_save.png','',40,'Shows information about Session Saver.','about()');
+menuModel.addItem(421,'Chrome Plugin Forum','menu_speech.png','',40,'Opens the forum to post feedback.','gotoForum()');
+
+menuModel.init();
+
+var menuBar = new DHTMLSuite.menuBar();
+menuBar.addMenuItems(menuModel);
+menuBar.setTarget('menuBarContainer');
+menuBar.init();
+
+</script>
+<SCRIPT TYPE="text/javascript">
+<!--
+function save(sessionName, afterCallback)
+{
+	window.opener.bgpAddSaveSession(sessionName);
+	
+	// Remove empty entry.
+	var selectList = document.getElementById('idload');
+	var sessionID = selectList.options[0].value;
+	if (sessionID=="none")
+	{
+		selectList.remove(0);
+	}
+
+	// Add session name to the selection list and select it.
+	var length = selectList.options.length;
+	selectList.options[length]=new Option(sessionName, length, false, true);
+	
+	if (afterCallback)
+	{
+		afterCallback();
+	}
+}
+function saveSelected()
+{
+	var sessionName = document.getElementById('idstate').value;
+	if (sessionName=="")
+	{
+		alert("Please enter a SessionName");
+	}
+	else
+	{
+		save(sessionName, function()
+		{
+			// Wait till save process finished before closing.
+			
+			window.open('', '_self', ''); //bug fix, without this next line crashes
+			window.close();
+		});
+	}
+}
+function loadSelected()
+{
+	var selectList = document.getElementById('idload');
+	var sessionID = selectList.options[selectList.selectedIndex].value;
+	if (sessionID=="none")
+	{
+		alert("No session to load");
+	}
+	else
+	{
+		window.opener.bgpLoadSessionID(sessionID);
+		window.open('', '_self', ''); //bug fix, without this next line crashes
+		window.close();
+	}
+}
+function deleteSessions()
+{
+	window.opener.bgpDeleteSessions();
+	// Now remove all from the selection list.
+	var selectList = document.getElementById('idload');
+	var i;
+	for(i=selectList.options.length-1;i>=0;i--)
+	{
+		selectList.remove(i);
+	}
+	// Add the none entry.
+	var length = selectList.options.length;
+	selectList.options[length]=new Option("No Saved Sessions", "none", false, true);
+}
+function deleteSelected()
+{
+	var selectList = document.getElementById('idload');
+	var sessionID = selectList.options[selectList.selectedIndex].value;
+	if (sessionID=="none")
+	{
+		alert("No session to delete");
+	}
+	else
+	{	
+		window.opener.bgpDeleteSessionID(sessionID);
+		selectList.remove(selectList.selectedIndex);
+				
+		// Add the none entry.
+		var length = selectList.options.length;
+		if (length==0)
+		{
+			selectList.options[length]=new Option("No Saved Sessions", "none", false, true);
+		}
+		else
+		{
+			// Need to reset the value index for entries above the deleted one
+			var i;
+			for(i=0;i<length;++i)
+			{
+				selectList.options[i].value = i;
+			}
+		}
+	}
+}
+function showUrls()
+{
+	window.opener.bgpShowUrls();
+}
+function afterGetNumBookmarkFolders(numBookmarkFolders)
+{
+	alert(numBookmarkFolders);
+}
+function afterGetNumBookmarkFolders(numBookmarkFolders)
+{
+	alert(numBookmarkFolders);
+}
+function afterRemoveBookmarkFolderAll()
+{
+	alert("afterRemoveBookmarkFolderAll");
+}
+function afterRemoveBookmarkFolderAllExceptOne()
+{
+	alert("afterRemoveBookmarkFolderAllExceptOne");
+}
+function testChunk()
+{
+	if (g_local)
+	{
+		testChunk1();
+	}
+	else
+	{
+		var text = window.opener.testChunk();
+		alert(text);
+	}
+}
+function parseVersion()
+{
+	var req = new XMLHttpRequest();
+	req.open('GET', "manifest.json");
+	req.onreadystatechange = function()
+	{
+		if (req.readyState == 4)
+		{
+			var manifest = eval('(' + req.responseText + ')' );
+			g_version = manifest.version;
+		}
+	}
+	req.send("");
+}
+
+parseVersion();
+//-->
+</SCRIPT>
+
+<center>
+<br>
+<input id="idstate" type="text" name="state" value="" style="width:200px"/>
+<input id="save" type="button" value="Save" onclick="saveSelected()" />
+<br>
+
+<select id="idload" name="selectName" style="width:204px"/>
+<script type="text/javascript">
+<!--
+var sessionNames;
+if (g_local)
+{
+	sessionNames = new Array("index 0","index 1","index 2");
+}
+else
+{
+	sessionNames = window.opener.g_sessionNames;
+}
+if (sessionNames==""||sessionNames.length==0)
+{
+	document.write('<option value="none" selected="selected">No Saved Sessions<\/option>');
+}
+else
+{
+	for (i=0;i<sessionNames.length;++i)
+	{
+		document.write('<option value="'+i+'">'+sessionNames[i]+'<\/option>');
+	}
+}
+//-->
+</script>
+</select>
+
+<input id="load" type="button" value="Load" onclick="loadSelected()" />
+<br>
+
+<input id="delete" type="button" value="Delete" onclick="deleteSelected()" />
+
+<input id="deleteAll" type="button" value="Delete All" onclick="deleteSessions()" />
+<br>
+
+<input id="showUrls" type="button" value="ShowUrls" onclick="showUrls();" />
+
+<!--
+
+Uncomment this to manually test functions perform as expected.
+Some callback chains can be tricky to get robust without testing functions in isolation.
+
+<input id="getNumBookmarkFolders" type="button" value="getNumBookmarkFolders" onclick="window.opener.getNumBookmarkFolders(afterGetNumBookmarkFolders);" />
+<input id="getNumBookmarkFolders2" type="button" value="getNumBookmarkFolders2" onclick="window.opener.getNumBookmarkFoldersTwo(afterGetNumBookmarkFolders);" />
+
+<input id="removeBookmarkFolderAll" type="button" value="removeBookmarkFolderAll" onclick="window.opener.removeBookmarkFolderAll(afterRemoveBookmarkFolderAll);" />
+
+<input id="removeBookmarkFolderAllExceptOne" type="button" value="removeBookmarkFolderAllExceptOne" onclick="window.opener.removeBookmarkFolderAllExceptOne(afterRemoveBookmarkFolderAllExceptOne);" />
+
+<input id="loadCookieFromBookmarks" type="button" value="loadCookieFromBookmarks" onclick="window.opener.loadCookieFromBookmarks();" />
+
+<input id="closeLastWindow" type="button" value="closeLastWindow" onclick="window.opener.closeLastWindow();" />
+<input id="saveAndCloseLastWindow" type="button" value="saveAndCloseLastWindow" onclick="window.opener.saveAndOptionallyCloseLastWindow('testingSession',true);" />
+
+<input id="jwSaveSessionToBookmarks" type="button" value="jwSaveSessionToBookmarks" onclick="window.opener.jwFindDaddy();" />
+
+
+-->
+
+<input id="showWindowIds" type="button" value="showWindowIds" onclick="window.opener.showWindowIds();" />
+
+
+</center>
+</body>
+</html>

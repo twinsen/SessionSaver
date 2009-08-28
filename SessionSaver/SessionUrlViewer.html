@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<!--Extension: SessionSaver-->
+<head>
+<title>Session Url Viewer</title>
+<script type="text/javascript">
+var movingWindow = false;
+var diff = new Array(0,0);
+var nleft=0,ntop=0,nheight=440,nwidth=500;
+function retrieve(){
+	var myn = document.getElementById("note");
+	myn.value = window.opener.getUrlList();
+	nleft = window.opener.nleft;
+	ntop = window.opener.ntop;
+	nwidth = window.opener.nwidth;
+	nheight = window.opener.nheight;
+	var bgc = window.opener.colors["bgcol"];
+	var fgc = window.opener.colors["fgcol"];
+	myn.style.backgroundColor = bgc;
+	myn.style.color = fgc;
+	document.getElementById("body").style.backgroundColor = fgc;
+	document.getElementById("visit").style.color = fgc;
+	document.getElementById("visit").style.backgroundColor = bgc;
+	document.getElementById("add").style.color = fgc;
+	document.getElementById("add").style.backgroundColor = bgc;
+	document.getElementById("save").style.color = fgc;
+	document.getElementById("save").style.backgroundColor = bgc;
+	document.getElementById("quit").style.color = fgc;
+	document.getElementById("quit").style.backgroundColor = bgc;
+	saveNewSize();
+}
+
+function saveText(){
+	var snote = document.getElementById("note").value;
+	window.opener.ntext = snote;
+//	window.opener.saveData();
+}
+
+function prepMove(e){
+	if(!movingWindow){
+	if(!e)var e = window.event;
+	if(e.button == 0){
+		movingWindow = true;
+		diff[0] = e.clientX;
+		diff[1] = e.clientY;
+	}}
+}
+
+function doMove(e){
+	if(movingWindow){
+	if(!e)var e = window.event;
+	nleft = nleft*1+(e.clientX-diff[0]);
+	ntop = ntop*1+(e.clientY-diff[1]);
+	window.moveTo(nleft,ntop);
+	}
+}
+
+function stopMove(e){
+	if(movingWindow){
+	if(!e)var e = window.event;
+	doMove(e);
+	ntop = window.screenTop;
+	nleft = window.screenLeft;
+	window.opener.nleft = nleft;
+	window.opener.ntop = ntop;
+//	window.opener.saveData();
+	movingWindow = false;
+	}
+}
+
+function saveNewSize(){
+	nwidth = window.outerWidth;
+	nheight = window.outerHeight;
+	window.opener.nwidth = nwidth;
+	window.opener.nheight = nheight;
+	document.getElementById("body").style.height = (window.innerHeight-17)+"px";
+	document.getElementById("note").style.height = (window.innerHeight-33)+"px";
+	document.getElementById("note").style.width = (window.innerWidth-6)+"px";
+//	window.opener.saveData();
+}
+
+function visitLinks(){
+	var txt = document.getElementById("note");
+	txt = txt.value.substring(txt.selectionStart,txt.selectionEnd);
+	if(txt == "")txt = document.getElementById("note").value;
+	var links = txt.match(/(https?:\/\/|chrome(-extension)?:\/\/|about:|file:\/\/\/)[^ \n\t\r]+/g);
+	for(var i in links){
+		window.opener.openLinkInNewTab(links[i]);
+	}
+}
+
+function popUpWindow(){
+	window.opener.popUpWindowNow();
+}
+
+function addLinks(){
+	window.opener.addLinksNow();
+	window.opener.saveData();
+	window.close();
+}
+
+</script>
+</head>
+<body id="body" style="padding:0;margin:0" onresize="saveNewSize();"onload="retrieve()">
+<textarea id="note" style="background-color:#FFA556">
+</textarea>
+<div style="width:100%;height:40;text-align:right" onmousedown="prepMove(event)" onmousemove="doMove(event)" onmouseup="stopMove(event)" onmouseout="stopMove(event)">
+</div>
+</body>
+</html>
