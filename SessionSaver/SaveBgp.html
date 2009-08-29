@@ -1326,6 +1326,70 @@ function closeTabsExceptUrl(exceptionList, afterCallback)
 	_closeTabsExceptUrl(exceptionList, false, afterCallback);
 }
 
+// Closes new tabs in all windows.
+// justWait - whether to just wait for the tabs to close (closing tabs multiple times sometimes causes an error).
+// Sometimes tabs take longer to close then the chrome.tabs.remove callback or the onRemoved event
+// We continue until there are no more left to remove.
+function _closeNewTabs(justWait, afterCallback)
+{
+	chrome.windows.getAll(true,function(wins)
+	{
+		var tabsToRemove = new Array();
+		for (var i=0;i<wins.length;++i)
+		{
+			for (var j=0;j<wins[i].tabs.length;++j)
+			{
+				var url = wins[i].tabs[j].url;
+				var tabShouldClose = false;
+				if (url=="chrome://newtab/")
+				{
+					tabShouldClose = true;
+				}
+				if (tabShouldClose)
+				{
+					tabsToRemove.push(wins[i].tabs[j].id);
+				}
+			}
+		}
+		if (tabsToRemove.length==0)
+		{
+			afterCallback();
+			return;
+		}
+		else if (justWait)
+		{
+			// Continue waiting until tabsToRemove.length==0.
+			_closeNewTabs(true, afterCallback);
+		}
+		else
+		{
+			var lastTabID = tabsToRemove[tabsToRemove.length-1];
+			for (var i=0;i<tabsToRemove.length;++i)
+			{
+				var tabID = tabsToRemove[i];
+
+				_closeTabHelper(tabID, lastTabID, 
+				function(isLastTab)
+				{
+					if (isLastTab)
+					{
+						// Now wait until there are no more left to remove.
+						_closeNewTabs(true, afterCallback);
+					}
+				});
+			}
+		}
+	});
+}
+
+// Closes new tabs in all windows.
+// Sometimes tabs take longer to close then the chrome.tabs.remove callback or the onRemoved event
+// We continue until there are no more left to remove.
+function closeNewTabs(afterCallback)
+{
+	_closeNewTabs(false, afterCallback);
+}
+
 // CONNECTION STUFF //
 var connections = new Array();
 var backups = new Array();
