@@ -30,113 +30,39 @@ var testCaseTwoWindowSaveAll = new YAHOO.tool.TestCase(
 		});
 		testCaseTwoWindowSaveAll.wait();
 	},
-	
-	_openCallback: function(index, urlList, afterCallback)
-	{
-console.log("ci:"+index);
-		if (index==urlList.length-1)
-		{
-console.log("aft:"+index);
-			afterCallback();
-		}
-	},
-	
+
+	// Opens url urlList[index] in window windowIDs[index].
+	// Waits for url to open, resumes, then opens index+1 until the end of the arrays.
+	// index - Index into arrays to use.
+	// urlList - List of urls to open.
+	// windowIDs - List of windows to open urls in.
 	_openWaitResume: function(index, urlList, windowIDs, afterCallback)
 	{
 		var i = index;
 		var backgroundPage = getBackgroundPage();		
 		backgroundPage.openLinkInNewTabInWindow(urlList[i], windowIDs[i], function()
 		{
-console.log("resume");
 			testCaseTwoWindowSaveAll.resume(function()
 			{
-console.log("bc");
-
-//if it was the last one call afterCallback
-		if (index==urlList.length-1)
-		{
-console.log("aft:"+index);
-			afterCallback();
-		}
-		else
-		{
-			// otherwise open the next one
-console.log("ac");
-				testCaseTwoWindowSaveAll._openWaitResume(i+1, urlList, windowIDs, afterCallback);			
-		}
-
-//todo: currently ends here, needs to nest next openlink at this level
-//open
-// wait
-// resume
-//   open
-//     wait
-//     resume
+				// If it was the last one call afterCallback.
+				if (index==urlList.length-1)
+				{
+					afterCallback();
+				}
+				else
+				{
+					// Otherwise open the next one.
+					testCaseTwoWindowSaveAll._openWaitResume(i+1, urlList, windowIDs, afterCallback);			
+				}
 			});
 		});
-console.log("iwait:"+i);
 		testCaseTwoWindowSaveAll.wait();		
 	},
-	
-	/*
-	_closeNewTabs: function(windowIDs, afterCallback)
-	{
-		chrome.tabs.getAllInWindow(windowIDs[i],function(tabs)
-		{
-			var tabsToClose = new Array();
-			for (var i=0;i<tabs.length;++i)
-			{
-				if (tabs[i].url=="chrome://newtab/")
-				{
-					tabsToClose.push(tabs[i].id);
-				}
-			}
-			
-		});
-		chrome.windows.get
-			chrome.windows.getAll(true,function(wins)
-	{
-	},*/
-	
-	//todo: not working properly
+
+	// Opens all urls in urlList in corresponding windows in windowIDs.
 	openInWindows: function(urlList, windowIDs, afterCallback)
-	{
-console.log("A: "+urlList.length);
-//	        this.wait(function(){ 
-
-//		var backgroundPage = getBackgroundPage();	
-		
+	{		
 		testCaseTwoWindowSaveAll._openWaitResume(0, urlList, windowIDs, afterCallback);
-		/*
-		for (var i=0;i<urlList.length;++i)
-		{
-console.log("i:"+i+" winID: "+windowIDs[i]+" url: "+urlList[i]);
-			backgroundPage.openLinkInNewTabInWindow(urlList[i], windowIDs[i], function()
-			{
-console.log("resume");
-				testCaseTwoWindowSaveAll.resume(function()
-				{			
-console.log("bc");
-
-					testCaseTwoWindowSaveAll._openCallback(i, urlList, afterCallback);
-console.log("ac");
-//todo: currently ends here, needs to nest next openlink at this level
-//open
-// wait
-// resume
-//   open
-//     wait
-//     resume
-				});
-			});
-console.log("iwait:"+i);
-			testCaseTwoWindowSaveAll.wait();			
-		}
-		*/
-			
-	         
-//	        }, 5000); 
-	
 	},
 
 	// Tests visiting two sites and saves and deletes the session, ensuring 
@@ -169,36 +95,30 @@ console.log("iwait:"+i);
 				var urlList = new Array();
 				urlList.push("http://www.google.com.au/");
 				urlList.push("http://www.iinet.net.au/customers/");
-console.log("1");
+
 				testCaseTwoWindowSaveAll.openInWindows(urlList, windowIDs, function()
 				{
-console.log("2");
+					// Close new tabs left from creating a new window.
 					backgroundPage.closeNewTabs(function()
 					{
 						testCaseTwoWindowSaveAll.resume(function()
-						{	
-console.log("2.5");
-
-					var expectedLastSessionUrls = "http://www.google.com.au/\n"+
-													"http://www.iinet.net.au/customers/\n";
+						{
+							// Save session and ensure contains urls from both windows.
+							var expectedLastSessionUrls = "http://www.google.com.au/\n"+
+														  "http://www.iinet.net.au/customers/\n";
 							
-					testCaseTwoWindowSaveAll.verifySaveAndDelete(
-						testCaseTwoWindowSaveAll, expectedLastSessionUrls, function()
-					{
-console.log("3");
-						// Restore previous options.
-						backgroundPage.getOptions().setSaveCurrentWindowOnly(oldSaveCurrentWindowOnly);
-						backgroundPage.getOptions().setCloseSavedTabs(oldCloseSavedTabs);
-						fnList.next();
-					});
-					
+							testCaseTwoWindowSaveAll.verifySaveAndDelete(
+								testCaseTwoWindowSaveAll, expectedLastSessionUrls, function()
+							{
+								// Restore previous options.
+								backgroundPage.getOptions().setSaveCurrentWindowOnly(oldSaveCurrentWindowOnly);
+								backgroundPage.getOptions().setCloseSavedTabs(oldCloseSavedTabs);
+								fnList.next();
+							});
 						});
-
-						
 					});
 					
 					testCaseTwoWindowSaveAll.wait();
-
 				});
 			});
 		});
