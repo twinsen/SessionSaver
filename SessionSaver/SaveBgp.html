@@ -36,6 +36,7 @@ var g_checkInProgress = false;
 var g_removeInProgress = false;
 var g_cookieReplacement = "";
 var g_cookieNamesAndUrls = "";
+var g_cookieRest = "";
 
 var options = createOptions();
 options.load();
@@ -53,10 +54,8 @@ function log(text)
 }
 function error(text)
 {
-	if (options.getLogging())
-	{
-		console.log(text);
-	}
+	// errors are logged reguardless of logging state
+	console.log(text);
 }
 function getNumSessions()
 {
@@ -66,12 +65,11 @@ function getSessionUrls(sessionID)
 {
 	return g_sessionUrls[sessionID];
 }
-var g_lastWindowID;
-var g_lastWindowIDIsSet = false;
+
 var g_secondLastWindowID;
 var g_secondLastWindowIDIsSet = false;
-var g_thirdLastWindowID;
-var g_thirdLastWindowIDIsSet = false;
+
+var g_currentSelectedWindowList = new Array();
 
 function toggle_notes(bu){
 if(mode == 1){
@@ -129,21 +127,16 @@ function createBookmarkFolder(afterCallback)
 			createBookmarkItem(folder.id, "CookiesNotReliable", 'http://code.google.com/p/chromium/issues/detail?id=15708');
 			
 			// There is about 4k size limit for each bookmark entry, 
-			// so split data into multiple bookmarks.				
-			var chunkString = g_cookieNamesAndUrls+document.cookie;
+			// so split data into multiple bookmarks.
+			var chunkString = g_cookieNamesAndUrls+g_cookieRest;
 			chunkArray = chunkString.chunk(3000);			
 			var i;
 			for (i=chunkArray.length-1;i>=0;i--)
 			{
 				createBookmarkItem(folder.id, g_sampleSettingCookieName+"##"+i+"##"
 					+chunkArray[i], 'http://www.google.com');
-//				createBookmarkItem(folder.id, g_sampleSettingCookieName+chunkArray[i], 
-//					'http://www.google.com');
 			}
 			
-//			createBookmarkItem(folder.id, g_sampleSettingCookieName+document.cookie, 
-//				'http://www.google.com');
-
 			createBookmarkItem(folder.id, g_helperItem, 
 				'http://www.google.com', afterCallback);
         }
@@ -232,26 +225,58 @@ function removeBookmarkFolderAll(afterCallback)
 	removeBookmarkHelper(0, afterCallback);
 }
 
+
+
 function saveCookieToBookmarks(afterCallback)
 {
 	log("saveCookieToBookmarks");
-	// Remove all settings bookmarks, 
-	// then create a new one with current settings,
-	// then remove all settings bookmarks except for 1 (incase multiple were created).
-	log("removeBookmarkFolderAll");
-	removeBookmarkFolderAll(function()
+	
+	getNumBookmarkFolders(
+	function(numBookmarkFolders)
 	{
-		log("createBookmarkFolder");
-		createBookmarkFolder(function()
+		// Before saving we should have 0 or 1, if not then there is a problem.
+		if (numBookmarkFolders>1)
 		{
-			log("removeBookmarkFolderAllExceptOne");
-			removeBookmarkFolderAllExceptOne(function()
+			error("Error: Invalid starting numBookmarkFolders: "+numBookmarkFolders);
+		}
+		
+		// Remove all settings bookmarks, 
+		// then create a new one with current settings,
+		// then remove all settings bookmarks except for 1 (incase multiple were created).
+		log("removeBookmarkFolderAll");
+		removeBookmarkFolderAll(function()
+		{
+			log("createBookmarkFolder");
+			createBookmarkFolder(function()
 			{
-				log("afterSaveCookieToBookmarks");				
-				// Now we load from bookmarks, to ensure data in memory is same as what was saved.
-				// This helps detect when we have reached limit of what we can store in bookmarks.
-				log("loadCookieFromBookmarks");				
-				loadCookieFromBookmarks(afterCallback);
+				// After creating we should have 1, if not there is a problem.
+				getNumBookmarkFolders(
+				function(numBookmarkFolders)
+				{
+					if (numBookmarkFolders!=1)
+					{
+						// If there is a problem, try to recover by removing all except one, and 
+						// then reloading.
+						error("Error: Invalid created numBookmarkFolders: "+numBookmarkFolders);
+						
+						log("removeBookmarkFolderAllExceptOne");
+						removeBookmarkFolderAllExceptOne(function()
+						{
+							log("afterSaveCookieToBookmarks");				
+							// Now we load from bookmarks, to ensure data in memory is same as what was saved.
+							log("loadCookieFromBookmarks");				
+							loadCookieFromBookmarks(afterCallback);
+						});						
+					}
+					else
+					{
+						// If only 1 was created, continue.
+//						afterCallback();
+							log("loadCookieFromBookmarks");				
+							loadCookieFromBookmarks(afterCallback);
+
+					}					
+				});
 			});
 		});
 	});
@@ -394,43 +419,37 @@ function loadCookieFromBookmarks(afterCallback)
 function saveData(afterCallback)
 {
 	log("saveData()");
-	var exdate=new Date();
-	exdate.setDate(exdate.getDate()+366);
-	exdate = exdate.toGMTString();
 	
 	if (g_sessionNames.length==0)
 	{
-		document.cookie = "has_sessions=false;expires="+exdate;
+		g_cookieRest = "has_sessions=false;";
 	}
 	else
 	{
-		document.cookie = "has_sessions=true;expires="+exdate;
+		g_cookieRest = "has_sessions=true;";
 	}
 
 	//cant store names and urls in document.cookie because we exceed the maximum size 
 	//of the cookie.
 	g_cookieNamesAndUrls = "";
 	
-	var tmp = "session_names="+escape(g_sessionNames.join("<br>"))+";expires="+exdate;
-//	document.cookie = tmp;
+	var tmp = "session_names="+escape(g_sessionNames.join("<br>"))+";";
 	g_cookieNamesAndUrls+=tmp;
 
-	tmp = "session_urls="+escape(g_sessionUrls.join("<br>"))+";expires="+exdate;
+	tmp = "session_urls="+escape(g_sessionUrls.join("<br>"))+";";
 	g_cookieNamesAndUrls+=tmp;
-//	document.cookie = tmp;
-//	log(tmp);
 	
-	document.cookie = "left="+nleft+";expires="+exdate;
-	document.cookie = "top="+ntop+";expires="+exdate;
-	document.cookie = "height="+nheight+";expires="+exdate;
-	document.cookie = "width="+nwidth+";expires="+exdate;
-	document.cookie = "lefti="+ileft+";expires="+exdate;
-	document.cookie = "topi="+itop+";expires="+exdate;
-	document.cookie = "heighti="+iheight+";expires="+exdate;
-	document.cookie = "widthi="+iwidth+";expires="+exdate;
-	document.cookie = "mode="+mode+";expires="+exdate;
-	document.cookie = "bgcol="+escape(colors["bgcol"])+";expires="+exdate;
-	document.cookie = "fgcol="+escape(colors["fgcol"])+";expires="+exdate;
+	g_cookieRest+= "left="+nleft+";";
+	g_cookieRest+= "top="+ntop+";";
+	g_cookieRest+= "height="+nheight+";";
+	g_cookieRest+= "width="+nwidth+";";
+	g_cookieRest+= "lefti="+ileft+";";
+	g_cookieRest+= "topi="+itop+";";
+	g_cookieRest+= "heighti="+iheight+";";
+	g_cookieRest+= "widthi="+iwidth+";";
+	g_cookieRest+= "mode="+mode+";";
+	g_cookieRest+= "bgcol="+escape(colors["bgcol"])+";";
+	g_cookieRest+= "fgcol="+escape(colors["fgcol"])+";";
 	var v = chrome.self.getViews();
 	for(var i in v){
 		if(v[i].is_ts){
@@ -438,16 +457,6 @@ function saveData(afterCallback)
 			else v[i].document.getElementById("text").src = "./save.png";
 		}
 	}
-	
-//	log("=COOKIE-BEGIN=");
-//	log(document.cookie);
-//	log("=COOKIE-END=");
-	
-	// Due to http://code.google.com/p/chromium/issues/detail?id=15708
-	// we can't rely on cookies. They only get saved every 30 seconds, and not when you exit.
-	// If you wait until the timestamp of Chrome\User Data\Default\Extension Cookies
-	// updates, then you can safely exit with new cookie saved.
-	// You can see when you exit straight away (<30 seconds) the timestamp does not update.
 		
 	saveCookieToBookmarks(afterCallback);
 }
@@ -476,9 +485,7 @@ function setMeUp(th){
 }
 
 function routineDataCheck(){
-//	if(document.cookie == ""){
-//		saveData();
-//	}
+
 }
 
 function toggleMode(th){
@@ -622,7 +629,7 @@ function addLinksNow(){
 
 	chrome.windows.getCurrent(function(win){
 
-		chrome.windows.getAll(true,function(wins){
+		chrome.windows.getAll({ populate: true },function(wins){
 			for(var i=0;i<wins.length;i++){
 				for(var j=0;j<wins[i].tabs.length;j++)
 				{
@@ -658,152 +665,78 @@ function getUrlList()
 	return text;
 }
 
-function getLastNonSessionSaverWindow(sessionSaverWindowID)
+//test is ID is in window list
+function isInWindowList(windowList, id)
 {
-	if (g_lastWindowIDIsSet && g_lastWindowID!=sessionSaverWindowID)
+	var isInWindowList = false;
+	for (var i=0;i<windowList.length;++i)
 	{
-		return g_lastWindowIDIsSet;
+		if (windowList[i].id == id)
+		{
+			return true;
+		}		
 	}
-	else if (g_secondLastWindowIDIsSet && g_secondLastWindowID!=sessionSaverWindowID)
+	return false;
+}
+
+function _getLastSelectedWindowID(ignoreWindows)
+{
+	for (var i=g_currentSelectedWindowList.length-1;i>=0;i--)
 	{
-		return g_secondLastWindowID;
+		var winid = g_currentSelectedWindowList[i];
+		if (!isInWindowList(ignoreWindows, winid))
+		{
+			return winid;
+		}
 	}
-	else if (g_thirdLastWindowIDIsSet && g_thirdLastWindowID!=sessionSaverWindowID)
-	{
-		return g_thirdLastWindowID;
-	}
-	else
-	{
-		return -1;
-	}
+	error("Could not find last selected window!");
+	return -1;
 }
 
 // Gets a list of all windows to save.
 // Can be either:
 // * Current window.
-// * All windows except the SessionSaver one.
+// * All windows except the SessionSaver ones and chrome debugger.
 // Return via:
 // afterCallback(windowsToSave, totalNumWindows, lastWindowID)
 // - windowsToSave is an array of Window types.
 // - totalNumWindows is the total number of windows not including the SessionSaver window. 
 // If you close all saved windows, this can be used to see if there will be any left.
-// - lastWindowID
+// - lastWindowID is last selected window id.
 function getWindowsToSave(afterCallback)
 {
-	var windowsToSave = new Array();
-	chrome.windows.getAll(true,
-	function(wins)
+	getTotalNumWindows(
+	function(totalNumWindows)
 	{
-		var totalNumWindows = wins.length;
-		var sessionSaverWindow;
-		var foundSessionSaverWindow = false;
-		
-		// Find Session Saver window.
-		for (var i=0;i<wins.length;++i)
+		getLastSelectedWindow(
+		function(win)
 		{
-			// SessionSaver window has 1 tab, 
-			// with title "Session Saver" and url is chrome-extension://ID/SessionSaver.html		
-			if (wins[i].tabs.length==1)
+			if (win==undefined)
 			{
-				var url = wins[i].tabs[0].url;
-				if (url == "chrome-extension://"+ext_id+"/SessionSaver.html")
-				{
-					sessionSaverWindow = wins[i];
-					foundSessionSaverWindow = true;
-				}
+				error("Error: getWindowsToSave() getLastSelectedWindow is undefined");
 			}
-		}
-		if (foundSessionSaverWindow)
-		{
-			totalNumWindows--;		
-		}
-		var lastWindowID = -1;
-		if (foundSessionSaverWindow)
-		{
-			lastWindowID = getLastNonSessionSaverWindow(sessionSaverWindow.id);
-		}
-
-		// Find just the current window.
-		if (options.getSaveCurrentWindowOnly())
-		{
-			// The last non Session Saver window to have focus is the one to save.
-			// If last window ID was set.
-			if (lastWindowID!=-1)
+			else if (options.getSaveCurrentWindowOnly())
 			{
-				var foundLastWindowID = false;
-				log("last window id: "+lastWindowID);
-				for (var i=0;i<wins.length;++i)
-				{
-					if (wins[i].id == lastWindowID)
-					{
-						log("win found");
-						windowsToSave.push(wins[i]);
-						foundLastWindowID = true;
-					}
-				}
-				if (!foundLastWindowID)
-				{
-					error("Error: last window id not found");
-				}
+				var windowsToSave = new Array();
+				windowsToSave.push(win);
+				afterCallback(windowsToSave, totalNumWindows, win.id);
 			}
 			else
 			{
-				log("last window id not set");
-				// Sometimes the last window is not set (window created, but no focus event).
-				// This typically happens when you try saving with only one window.
-				// Just find the windows that are not the Session Saver window (there should just be 1).
-				for (var i=0;i<wins.length;++i)
+				getAllWindowsToSave(
+				function(windowsToSave)
 				{
-					if (foundSessionSaverWindow && wins[i].id==sessionSaverWindow.id)
-					{
-						// Ignore the SessionSaver window.
-					}
-					else
-					{
-						log("win found");					
-						windowsToSave.push(wins[i]);
-					}
-				}
+					afterCallback(windowsToSave, totalNumWindows, win.id);
+				});
 			}
-			if (windowsToSave.length>1)
-			{
-				error("Error: Expected only 1 window to be found, actually found: "+windowsToSave.length);
-			}
-			else if (windowsToSave.length==0)
-			{
-				error("Error: No windows found, expected to find 1");
-			}
-		}
-		else
-		{
-			// Save all windows.
-			for (var i=0;i<wins.length;++i)
-			{
-				if (foundSessionSaverWindow && wins[i].id==sessionSaverWindow.id)
-				{
-					// Ignore the SessionSaver window.
-				}
-				else if (wins[i].tabs.length==1 && wins[i].tabs[0].url=="chrome://devtools/devtools.html")
-				{
-					// Debugger window has 1 tab with url chrome://devtools/devtools.html
-					// Ignore it.	
-					totalNumWindows--;
-				}
-				else
-				{
-					windowsToSave.push(wins[i]);
-				}
-			}			
-		}
-		log("getWindowsToSave returning: "+windowsToSave.length+" windows to save");
-		log("totalNumWindows = "+totalNumWindows);
-		afterCallback(windowsToSave, totalNumWindows, lastWindowID);
+		});
 	});
 }
 
 function bgpAddSaveSession(sessionName, afterCallback)
 {
-showWindowIds();
+//showWindowIds();
+
 //bug: cant close main window in simple test @ ext page, save all + close
 //saves ok but no window close...
 
@@ -811,6 +744,7 @@ showWindowIds();
 	function(windowsToSave, totalNumWindows, lastWindowID)
 	{
 		g_sessionNames.push(sessionName);
+console.log("push: "+sessionName+" tot:"+totalNumWindows+" lw:"+lastWindowID);
 		g_currentUrlText = "";
 		var currentUrlNames = "";
 
@@ -864,6 +798,8 @@ showWindowIds();
 					}
 					else
 					{
+						error("Error: did not expect invalid lastWindowID, creating new window");
+						
 						chrome.windows.create({'left': 0, 'top': 0, 
 							'width': 800, 'height' : 600}, function()
 						{
@@ -912,7 +848,7 @@ showWindowIds();
 	chrome.windows.getCurrent(
 	function(win)
 	{
-		chrome.windows.getAll(true,
+		chrome.windows.getAll({ populate: true },
 		function(wins)
 		{
 
@@ -1004,7 +940,7 @@ function closeLastWindow()
 	else //could be 1st window, so find the only window that isn't the current
 	{
 	chrome.windows.getCurrent(function(win){
-		chrome.windows.getAll(true,function(wins){
+		chrome.windows.getAll({ populate: true },function(wins){
 		
 			for(var i=0;i<wins.length;i++){
 				for(var j=0;j<wins[i].tabs.length;j++)
@@ -1041,7 +977,7 @@ function saveAndOptionallyCloseLastWindow(sessionName, closeLastWindow, afterCal
 	if (g_secondLastWindowIDIsSet)
 	{
 	
-		chrome.windows.getAll(true,
+		chrome.windows.getAll({ populate: true },
 		function(wins)
 		{
 			g_sessionNames.push(sessionName);
@@ -1094,7 +1030,7 @@ function saveAndOptionallyCloseLastWindow(sessionName, closeLastWindow, afterCal
 	{	
 		// Unfortunately the current window may no longer be the SessionSaver window.
 		// So we need to find it.
-		chrome.windows.getAll(true,function(wins){
+		chrome.windows.getAll({ populate: true },function(wins){
 		
 		
 			g_sessionNames.push(sessionName);
@@ -1215,7 +1151,7 @@ function showWindowIds()
 	if (!options.getLogging())
 		return;
 	
-	chrome.windows.getAll(true,function(wins)
+	chrome.windows.getAll({ populate: true },function(wins)
 	{
 		for (var i=0;i<wins.length;++i)
 		{
@@ -1226,13 +1162,188 @@ function showWindowIds()
 				log("First Url: "+wins[i].tabs[0].url);
 			}
 			log("Num Tabs: "+wins[i].tabs.length);
+			log("");
 		}
 	});
 }
 
+//returns afterCallback(win) or afterCallback(undefined) if none found
+function getLastSelectedWindow(afterCallback)
+{
+	chrome.windows.getAll({ populate: true },
+	function(wins)
+	{
+		// Find windows to ignore.
+		var ignoreWindows = new Array();
+		for (var i=0;i<wins.length;++i)
+		{
+			// SessionSaver window has 1 tab, 
+			// with title "Session Saver" and url is chrome-extension://ID/SessionSaver.html		
+			// Also ignore SessionUrlViewer and dev tools.
+			if (wins[i].tabs.length==1)
+			{
+				var url = wins[i].tabs[0].url;
+				if (url == "chrome-extension://"+ext_id+"/SessionSaver.html" || 
+					url == "chrome-extension://"+ext_id+"/SessionUrlViewer.html" ||
+					url == "chrome://devtools/devtools.html")
+				{
+					ignoreWindows.push(wins[i]);
+				}
+			}
+		}
+
+		var lastWindowID = _getLastSelectedWindowID(ignoreWindows);
+			
+		for (var w=0;w<wins.length;++w)
+		{
+			if (wins[w].id==lastWindowID)
+			{
+				afterCallback(wins[w]);
+				return;
+			}
+		}
+		afterCallback(undefined);
+	});
+}
+
+//Prints information about last selected window.
+function showLastSelectedWindow()
+{
+	log("");
+	log("=ShowLastSelectedWindow=");
+	getLastSelectedWindow(
+	function(win)
+	{
+		if (win==undefined)
+		{
+			error("Error: showLastSelectedWindow() win is undefined");
+		}
+		else
+		{
+			log("Window ID: "+win.id);
+			if (win.tabs.length>0)
+			{
+				log("First Tab: "+win.tabs[0].title);
+				log("First Url: "+win.tabs[0].url);
+			}
+			log("Num Tabs: "+win.tabs.length);
+			log("");
+		}
+	});
+}
+
+//Prints a list of all windows out, in order they are selected.
+//last one is last selected.
+function showWindows()
+{
+	log("");
+	log("=ShowWindows=");
+	chrome.windows.getAll({ populate: true },
+	function(wins)
+	{
+		log("Num windows: "+g_currentSelectedWindowList.length);
+		for (var s=0;s<g_currentSelectedWindowList.length;++s)
+		{
+			log("Index: "+s);
+			log(g_currentSelectedWindowList[s]);
+		
+			for (var w=0;w<wins.length;++w)
+			{
+				if (wins[w].id==g_currentSelectedWindowList[s])
+				{
+					log("Window ID: "+wins[w].id);
+					if (wins[w].tabs.length>0)
+					{
+						log("First Tab: "+wins[w].tabs[0].title);
+						log("First Url: "+wins[w].tabs[0].url);
+					}
+					log("Num Tabs: "+wins[w].tabs.length);
+					log("");
+				}
+			}
+			log("");
+		}	
+	});
+}
+
+//Gets a list of all windows to save (minus ones to ignore)
+// Return via:
+// afterCallback(windowsToSave)
+// - windowsToSave is an array of Window types.
+function getAllWindowsToSave(afterCallback)
+{
+	var allWindowsToSave = new Array();
+	chrome.windows.getAll({ populate: true },
+	function(wins)
+	{
+		// Find windows to ignore.
+		var ignoreWindows = new Array();
+		for (var i=0;i<wins.length;++i)
+		{
+			// SessionSaver window has 1 tab, 
+			// with title "Session Saver" and url is chrome-extension://ID/SessionSaver.html		
+			// Also ignore SessionUrlViewer and dev tools.
+			if (wins[i].tabs.length==1)
+			{
+				var url = wins[i].tabs[0].url;
+				if (url == "chrome-extension://"+ext_id+"/SessionSaver.html" || 
+					url == "chrome-extension://"+ext_id+"/SessionUrlViewer.html" ||
+					url == "chrome://devtools/devtools.html")
+				{
+					ignoreWindows.push(wins[i]);
+				}
+			}
+		}
+
+		for (var w=0;w<wins.length;++w)
+		{
+			if (!isInWindowList(ignoreWindows, wins[w].id))
+			{
+				allWindowsToSave.push(wins[w]);
+			}
+		}
+		
+		afterCallback(allWindowsToSave);
+	});
+}
+
+// Gets number of windows minus ones to ignore (eg SessionSaver, dev tools).
+// Return via:
+// afterCallback(totalNumWindows)
+// If you close all saved windows, this can be used to see if there will be any left.
+function getTotalNumWindows(afterCallback)
+{
+	chrome.windows.getAll({ populate: true },
+	function(wins)
+	{
+		var totalNumWindows = wins.length;
+		// Find windows to ignore.
+		var ignoreWindows = new Array();
+		for (var i=0;i<wins.length;++i)
+		{
+			// SessionSaver window has 1 tab, 
+			// with title "Session Saver" and url is chrome-extension://ID/SessionSaver.html		
+			// Also ignore SessionUrlViewer and dev tools.
+			if (wins[i].tabs.length==1)
+			{
+				var url = wins[i].tabs[0].url;
+				if (url == "chrome-extension://"+ext_id+"/SessionSaver.html" || 
+					url == "chrome-extension://"+ext_id+"/SessionUrlViewer.html" ||
+					url == "chrome://devtools/devtools.html")
+				{
+					ignoreWindows.push(wins[i]);
+					totalNumWindows--;
+				}
+			}
+		}		
+		afterCallback(totalNumWindows);
+	});
+}
+
+
 function getAllWindows(returnFunction)
 {
-	chrome.windows.getAll(true,function(wins)
+	chrome.windows.getAll({ populate: true },function(wins)
 	{
 		returnFunction(wins);
 	});
@@ -1263,7 +1374,7 @@ function _closeTabHelper(tabID, lastTabID, afterCallback)
 // We continue until there are no more left to remove.
 function _closeTabsExceptUrl(exceptionList, justWait, afterCallback)
 {
-	chrome.windows.getAll(true,function(wins)
+	chrome.windows.getAll({ populate: true },function(wins)
 	{
 		var tabsToRemove = new Array();
 		for (var i=0;i<wins.length;++i)
@@ -1332,7 +1443,7 @@ function closeTabsExceptUrl(exceptionList, afterCallback)
 // We continue until there are no more left to remove.
 function _closeNewTabs(justWait, afterCallback)
 {
-	chrome.windows.getAll(true,function(wins)
+	chrome.windows.getAll({ populate: true },function(wins)
 	{
 		var tabsToRemove = new Array();
 		for (var i=0;i<wins.length;++i)
@@ -1395,29 +1506,62 @@ var connections = new Array();
 var backups = new Array();
 var lasttab;
 chrome.tabs.onSelectionChanged.addListener(chgTab);
+
+chrome.windows.onCreated.addListener(createdWin);
 chrome.windows.onFocusChanged.addListener(chgWin);
+chrome.windows.onRemoved.addListener(removedWin);
+
 chrome.tabs.onRemoved.addListener(rmvTab);
 chrome.self.onConnect.addListener(gotConnect);
 
+function removeSelectedWindowIfExists(winid)
+{
+	if (g_currentSelectedWindowList.indexOf(winid)!=-1)
+	{
+		g_currentSelectedWindowList.splice(g_currentSelectedWindowList.indexOf(winid), 1);
+	}
+}
+
+//initially we don't get the create or focus event for the first window, so fill with inital set
+function fillInitialSelectedWindows()
+{
+	chrome.windows.getAll({ populate: true },
+	function(wins)
+	{
+		for (var i=0;i<wins.length;++i)
+		{
+			var winid = wins[i].id;
+			removeSelectedWindowIfExists(winid);
+			g_currentSelectedWindowList.push(winid);
+		}
+	});
+}
+fillInitialSelectedWindows();
+
+function createdWin(win)
+{
+	var winid = win.id;
+	removeSelectedWindowIfExists(winid);
+	g_currentSelectedWindowList.push(winid);
+}
+
+function removedWin(winid)
+{
+	removeSelectedWindowIfExists(winid);
+}
+
 function chgWin(winid)
 {
-	if (g_secondLastWindowIDIsSet)
-	{
-		g_thirdLastWindowID = g_secondLastWindowID;
-		g_thirdLastWindowIDIsSet = true;
-	}
-	if (g_lastWindowIDIsSet)
-	{
-		g_secondLastWindowID = g_lastWindowID;
-		g_secondLastWindowIDIsSet = true;
-	}
-	g_lastWindowID = winid;
-	g_lastWindowIDIsSet = true;	
+	removeSelectedWindowIfExists(winid);
+	g_currentSelectedWindowList.push(winid);
 	
 	chrome.tabs.getSelected(winid,function(tab){
 		chgTab(tab.id,tab.windowId);
 	});
 }
+
+
+
 function chgTab(tabid,winid){
 	//Move note information to the new tab instead
 	if(iopen && mode == 2){
@@ -1449,7 +1593,7 @@ function pm(port){
 
 function gotConnect(port){
 	var tid = "temp"+Math.random();
-	log("Script connected. ("+tid+")");
+
 	connections[tid] = port;
 	port.onMessage.addListener(gotMessage);
 	pm(port,"youare",tid);
@@ -1458,7 +1602,7 @@ function gotConnect(port){
 
 function gotMessage(msg){
 	if(msg[0] == "I'm"){
-		chrome.windows.getAll(true,function(wins){
+		chrome.windows.getAll({ populate: true },function(wins){
 			for(var i=0;i<wins.length;i++){
 				for(var j=0;j<wins[i].tabs.length;j++){
 					//Maybe do a check for multiples later, perhaps by modifying the title
@@ -1466,9 +1610,8 @@ function gotMessage(msg){
 						pm(connections[msg[1]],"youare",wins[i].tabs[j].id);
 						connections[wins[i].tabs[j].id] = connections[msg[1]];
 						delete connections[msg[1]];
-						log("Tab discovered, ("+msg[1]+") becomes ("+wins[i].tabs[j].id+") ["+wins[i].tabs[j].index+"]");
+						
 						if(wins[i].tabs[j].selected){
-							console.log("Tab is selected, opening note maybe.");
 							chgTab(wins[i].tabs[j].id,wins[i].tabs[j].windowId);
 						}
 						return;

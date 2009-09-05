@@ -23,29 +23,29 @@ var testCaseOptionsSave = new YAHOO.tool.TestCase(
 	// Helper function that saves and loads supplied options to see if their state is identical.
 	assertOptionsSaveAndLoadAreEqual: function(saveOptions, afterCallback)
 	{
-		thisTestCase = this;
+		var tco = testCaseOptionsSave;
 		saveOptions.save(function()
 		{
-			thisTestCase.resume(function()
+			tco.resume(function()
 			{
-				var loadOptions = thisTestCase.createUnitTestOptions();
+				var loadOptions = tco.createUnitTestOptions();
 				loadOptions.load(function()
 				{
-					thisTestCase.resume(function()
+					tco.resume(function()
 					{
-						thisTestCase.assertOptionsAreEqual(saveOptions, loadOptions);
+						tco.assertOptionsAreEqual(saveOptions, loadOptions);
 						if (afterCallback)
 						{
 							afterCallback();
 						}
 					});
 				});
-				thisTestCase.wait();
+				tco.wait();
 			});
 		});
-		thisTestCase.wait();
+		tco.wait();
 	},	
-	
+
 	// Tests Options::save() to ensure it saves options state when all options are true.
 	testOptionsSaveAllTrue: function()
 	{
@@ -56,7 +56,7 @@ var testCaseOptionsSave = new YAHOO.tool.TestCase(
 		saveOptions.setLogging(true);
 		thisTestCase.assertOptionsSaveAndLoadAreEqual(saveOptions);
 	},
-
+	
 	// Tests Options::save() to ensure it saves options state when all options are false.
 	testOptionsSaveAllFalse: function()
 	{
@@ -70,27 +70,24 @@ var testCaseOptionsSave = new YAHOO.tool.TestCase(
 
 	// Tests Options::save() to ensure it saves options state when all options are a mixture.
 	testOptionsSaveMixture: function()
-	{
-		thisTestCase = this;
-	
-		var saveOptions = thisTestCase.createUnitTestOptions();
+	{	
+		var saveOptions = testCaseOptionsSave.createUnitTestOptions();
 		saveOptions.setSaveCurrentWindowOnly(false);
 		saveOptions.setCloseSavedTabs(true);
 		saveOptions.setLogging(false);
-		thisTestCase.assertOptionsSaveAndLoadAreEqual(saveOptions, function()
-		{
-			thisTestCase.resume(function()
-			{
-				var saveOptions = thisTestCase.createUnitTestOptions();
-				saveOptions.setSaveCurrentWindowOnly(true);
-				saveOptions.setCloseSavedTabs(false);
-				saveOptions.setLogging(true);
-				thisTestCase.assertOptionsSaveAndLoadAreEqual(saveOptions);			
-			});
-		});
-		thisTestCase.wait();
+		testCaseOptionsSave.assertOptionsSaveAndLoadAreEqual(saveOptions);
 	},
 	
+	// Tests Options::save() to ensure it saves options state when all options are a mixture.
+	testOptionsSaveMixture2: function()
+	{	
+		var saveOptions = testCaseOptionsSave.createUnitTestOptions();
+		saveOptions.setSaveCurrentWindowOnly(true);
+		saveOptions.setCloseSavedTabs(false);
+		saveOptions.setLogging(true);
+		testCaseOptionsSave.assertOptionsSaveAndLoadAreEqual(saveOptions);
+	},
+
 	createUnitTestBookmarkManager: function()
 	{
 	var bookmarkManager = createBookmarkManager();

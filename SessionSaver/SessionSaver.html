@@ -400,6 +400,7 @@ Uncomment this to manually test functions perform as expected.
 Some callback chains can be tricky to get robust without testing functions in isolation.
 
 <input id="getNumBookmarkFolders" type="button" value="getNumBookmarkFolders" onclick="window.opener.getNumBookmarkFolders(afterGetNumBookmarkFolders);" />
+
 <input id="getNumBookmarkFolders2" type="button" value="getNumBookmarkFolders2" onclick="window.opener.getNumBookmarkFoldersTwo(afterGetNumBookmarkFolders);" />
 
 <input id="removeBookmarkFolderAll" type="button" value="removeBookmarkFolderAll" onclick="window.opener.removeBookmarkFolderAll(afterRemoveBookmarkFolderAll);" />
@@ -413,11 +414,12 @@ Some callback chains can be tricky to get robust without testing functions in is
 
 <input id="jwSaveSessionToBookmarks" type="button" value="jwSaveSessionToBookmarks" onclick="window.opener.jwFindDaddy();" />
 
-
--->
-
 <input id="showWindowIds" type="button" value="showWindowIds" onclick="window.opener.showWindowIds();" />
 
+<input id="showLastSelectedWindow" type="button" value="showLastSelectedWindow" onclick="window.opener.showLastSelectedWindow();" />
+
+<input id="showWindows" type="button" value="showWindows" onclick="window.opener.showWindows();" />
+-->
 
 </center>
 </body>
