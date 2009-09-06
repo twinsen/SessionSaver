@@ -7,7 +7,8 @@
 var movingWindow = false;
 var diff = new Array(0,0);
 var nleft=0,ntop=0,nheight=440,nwidth=500;
-function retrieve(){
+function retrieve()
+{
 	var myn = document.getElementById("note");
 	myn.value = window.opener.getUrlList();
 	nleft = window.opener.nleft;
@@ -28,12 +29,6 @@ function retrieve(){
 	document.getElementById("quit").style.color = fgc;
 	document.getElementById("quit").style.backgroundColor = bgc;
 	saveNewSize();
-}
-
-function saveText(){
-	var snote = document.getElementById("note").value;
-	window.opener.ntext = snote;
-//	window.opener.saveData();
 }
 
 function prepMove(e){
@@ -87,16 +82,6 @@ function visitLinks(){
 	for(var i in links){
 		window.opener.openLinkInNewTab(links[i]);
 	}
-}
-
-function popUpWindow(){
-	window.opener.popUpWindowNow();
-}
-
-function addLinks(){
-	window.opener.addLinksNow();
-	window.opener.saveData();
-	window.close();
 }
 
 </script>

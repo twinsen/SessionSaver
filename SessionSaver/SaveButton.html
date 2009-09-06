@@ -4,12 +4,14 @@
 <head>
 <script type="text/javascript">
 var bgp,is_ts=true;
-function begin(){
+function begin()
+{
 	var v = chrome.self.getViews();
-	for(var i in v){
-		if(v[i].is_bgp){
+	for(var i in v)
+	{
+		if(v[i].is_bgp)
+		{
 			bgp = v[i];
-			bgp.setMeUp(self);
 			return;
 		}
 	}

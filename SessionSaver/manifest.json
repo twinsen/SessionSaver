@@ -1,6 +1,6 @@
 {
    "name": "Session Saver",
-   "version": "0.16",
+   "version": "0.17",
    "description": "A session manager for your browser.",
    "permissions": [ "tabs", "bookmarks" ],
    "toolstrips": [ "SaveButton.html" ],

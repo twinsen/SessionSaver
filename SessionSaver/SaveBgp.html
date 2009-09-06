@@ -2,10 +2,6 @@
 <html>
 <!--Extension: SessionSaver-->
 <head>
-<!--Events Begin-->
-<!--script type="text/javascript" src="yui/yahoo-min.js"></script>
-<script type="text/javascript" src="yui/event-min.js"></script-->
-<!--Events End-->
 <script type="text/javascript" src="Include.js"></script>
 <script type="text/javascript" src="String.js"></script>
 <script type="text/javascript" src="BackgroundPage.js"></script>
@@ -475,19 +471,6 @@ function loadData()
 	loadCookieFromBookmarks();
 }
 
-function setMeUp(th){
-//	if(mode == 1)th.document.getElementById("mimg").attributes["src"].value = "out.png";
-//	else if(mode == 2)th.document.getElementById("mimg").attributes["src"].value = "in.png";
-//	th.document.getElementById("bgcol").style.backgroundColor=colors["bgcol"];
-//	th.document.getElementById("fgcol").style.backgroundColor=colors["fgcol"];
-//	if(ntext != "")th.document.getElementById("text").src = "./save.png";
-//	else th.document.getElementById("text").src = "./save.png";
-}
-
-function routineDataCheck(){
-
-}
-
 function toggleMode(th){
 	if(nwind != false && !nwind.closed){ //Notes in use
 		ntext = nwind.document.getElementById("note").value;
@@ -551,7 +534,8 @@ function saveOptCol(col,copt){
 	saveData();
 }
 
-// Opens link in new tab, but does not make it selected.
+// Opens link in new tab in current window, but does not make it selected.
+// Current window is not always the expected one (if you open multiple windows).
 // link - url
 // afterCallback(tab) - returns created tab.
 function openLinkInNewTab(link, afterCallback)
@@ -563,6 +547,26 @@ function openLinkInNewTab(link, afterCallback)
 		tab.windowId = win.id;
 		tab.selected = false;
 		chrome.tabs.create(tab, afterCallback);
+	});
+}
+
+// Opens link in new tab in last selected window, but does not make it selected.
+// link - url
+// afterCallback(tab) - returns created tab.
+function openLinkInNewTabInLastSelectedWindow(link, afterCallback)
+{
+	getLastSelectedWindow(
+	function(win)
+	{
+		if (win==undefined)
+		{
+			error("Error: showLastSelectedWindow() win is undefined");
+			afterCallback();
+		}
+		else
+		{
+			openLinkInNewTabInWindow(link, win.id, afterCallback);
+		}
 	});
 }
 
@@ -620,28 +624,6 @@ function getCurrentWindowID(afterCallback)
 	function(win)
 	{
 		afterCallback(win.id);
-	});
-}
-
-function addLinksNow(){
-
-	ntext = "";
-
-	chrome.windows.getCurrent(function(win){
-
-		chrome.windows.getAll({ populate: true },function(wins){
-			for(var i=0;i<wins.length;i++){
-				for(var j=0;j<wins[i].tabs.length;j++)
-				{
-					//ignore the sticky window
-					if(wins[i].id!=win.id)
-					{
-						ntext = ntext+wins[i].tabs[j].url+"\n";
-					}
-				}
-			}			
-		});
-
 	});
 }
 
@@ -733,18 +715,17 @@ function getWindowsToSave(afterCallback)
 	});
 }
 
+// Gets windows to save (all or current), gets urls out of each tab (urls not containing session saver extension).
+// Saves them to bookmarks, then optionally closes them.
+// TODO: improvement: ensure afterCallback gets called once when closing multiple windows 
+// (afterCallback is undefined at the moment anyway).
 function bgpAddSaveSession(sessionName, afterCallback)
 {
-//showWindowIds();
-
-//bug: cant close main window in simple test @ ext page, save all + close
-//saves ok but no window close...
-
 	getWindowsToSave(
 	function(windowsToSave, totalNumWindows, lastWindowID)
 	{
 		g_sessionNames.push(sessionName);
-console.log("push: "+sessionName+" tot:"+totalNumWindows+" lw:"+lastWindowID);
+		log("push: "+sessionName+" tot:"+totalNumWindows+" lw:"+lastWindowID);
 		g_currentUrlText = "";
 		var currentUrlNames = "";
 
@@ -835,275 +816,7 @@ console.log("push: "+sessionName+" tot:"+totalNumWindows+" lw:"+lastWindowID);
 			}
 		});
 	});
-	return;
-	//refactoring code below.
-	/*
-	
-	if (options.getSaveCurrentWindowOnly())
-	{
-		saveAndOptionallyCloseLastWindow(sessionName, options.getCloseSavedTabs(), afterCallback);
-		return;
-	}
-
-	chrome.windows.getCurrent(
-	function(win)
-	{
-		chrome.windows.getAll({ populate: true },
-		function(wins)
-		{
-
-			g_sessionNames.push(sessionName);
-			g_currentUrlText = "";
-			var currentUrlNames = "";
-		
-			var winIdsToClose = new Array();
-		
-			for(var i=0;i<wins.length;i++)
-			{
-				for(var j=0;j<wins[i].tabs.length;j++)
-				{
-                    //ignore the sticky window
-                    if(wins[i].id!=win.id)
-                    {
-						winIdsToClose.push(wins[i].id);
-						
-						url = String(wins[i].tabs[j].url);
-                        if(url.indexOf(ext_id)==-1)
-						{
-							g_currentUrlText = g_currentUrlText+url+"\n";
-							var urlName = wins[i].tabs[j].title;
-							currentUrlNames = currentUrlNames+urlName+"\n";
-						}
-					}
-				}
-			}			
-			//urls go out of scope beyond here
-			g_sessionUrls.push(g_currentUrlText);
-			g_sessionUrlNames.push(currentUrlNames);
-			saveData();
-			
-			//want to close everything except current
-			if (options.getCloseSavedTabs())
-			{
-				if (g_secondLastWindowIDIsSet)
-				{
-					chrome.windows.get(g_secondLastWindowID, function(win)
-					{
-
-				chrome.windows.create({'left': win.left, 'top': win.top, 
-					'width': win.width, 'height' : win.height}, function()
-				{
-				
-				for (var i=0;i<winIdsToClose.length;++i)
-				{
-					chrome.windows.remove(winIdsToClose[i]);
-				}
-				
-				});
-					
-					
-					});
-				}
-				else
-				{
-			
-				chrome.windows.create({'left': 0, 'top': 0, 'width': 800, 'height' : 600}, function()
-				{
-				
-				for (var i=0;i<winIdsToClose.length;++i)
-				{
-					chrome.windows.remove(winIdsToClose[i]);
-				}
-				
-				});
-				
-				}
-				
-				
-			}
-			if (afterCallback)
-			{
-				afterCallback();
-			}
-		}); 
-	}); 
-	*/
 }
-
-function closeLastWindow()
-{
-	if (g_secondLastWindowIDIsSet)
-	{
-		log("removing window");
-		chrome.windows.remove(g_secondLastWindowID);
-	}
-	else //could be 1st window, so find the only window that isn't the current
-	{
-	chrome.windows.getCurrent(function(win){
-		chrome.windows.getAll({ populate: true },function(wins){
-		
-			for(var i=0;i<wins.length;i++){
-				for(var j=0;j<wins[i].tabs.length;j++)
-				{
-                    //ignore the sticky window
-                    if(wins[i].id!=win.id)
-                    {
-						chrome.windows.remove(wins[i].id);
-					}
-				}
-			}			
-		}); 
-	}); 	
-	}
-}
-
-function closeWindowAndCreateNewOne(theWinId, afterCallback)
-{
-	log("closeWindowAndCreateNewOne: "+theWinId);
-	showWindowIds();
-	
-	chrome.windows.get(theWinId, function(win)
-	{
-		chrome.windows.create({'left': win.left, 'top': win.top, 
-			'width': win.width, 'height' : win.height}, function()
-		{
-			chrome.windows.remove(theWinId, afterCallback);
-		});				
-	});
-}
-
-function saveAndOptionallyCloseLastWindow(sessionName, closeLastWindow, afterCallback)
-{
-	if (g_secondLastWindowIDIsSet)
-	{
-	
-		chrome.windows.getAll({ populate: true },
-		function(wins)
-		{
-			g_sessionNames.push(sessionName);
-			g_currentUrlText = "";				
-			var currentUrlNames = "";
-
-			for(var i=0;i<wins.length;i++)
-			{
-				if (wins[i].id == g_secondLastWindowID) //save it
-				{
-				for(var j=0;j<wins[i].tabs.length;j++)
-				{
-						url = String(wins[i].tabs[j].url);
-                        if(url.indexOf(ext_id)==-1)
-						{
-							g_currentUrlText = g_currentUrlText+url+"\n";
-							var urlName = wins[i].tabs[j].title;
-							currentUrlNames = currentUrlNames+urlName+"\n";							
-						}
-				}
-				}
-			}			
-			//urls go out of scope beyond here
-			g_sessionUrls.push(g_currentUrlText);		
-			g_sessionUrlNames.push(currentUrlNames);
-			saveData();
-			
-			//then close it
-			if (closeLastWindow)
-			{
-				if (wins.length==2)
-				{
-					log("close1");
-					closeWindowAndCreateNewOne(g_secondLastWindowID);
-				}
-				else
-				{
-					chrome.windows.remove(g_secondLastWindowID);			
-				}
-			
-			}
-			
-			if (afterCallback)
-			{
-				afterCallback();
-			}
-		}); 		
-	}
-	else // could be 1st window, so find the only window that isn't the SessionSaver window
-	{	
-		// Unfortunately the current window may no longer be the SessionSaver window.
-		// So we need to find it.
-		chrome.windows.getAll({ populate: true },function(wins){
-		
-		
-			g_sessionNames.push(sessionName);
-			g_currentUrlText = "";
-			var currentUrlNames = "";
-
-			var theSessionSaverWindow;
-			var foundSessionSaverWindow = false;
-			var theWinIdToClose;
-			for(var i=0;i<wins.length;i++)
-			{
-			    // SessionSaver window has 1 tab, 
-				// with title "Session Saver" and url is chrome-extension://ID/SessionSaver.html
-				if (wins[i].tabs.length==1)
-				{
-					var url = wins[i].tabs[0].url;
-					if (url == "chrome-extension://"+ext_id+"/SessionSaver.html")
-					{
-						theSessionSaverWindow = wins[i];
-						foundSessionSaverWindow = true;
-					}
-				}
-				
-				if (foundSessionSaverWindow && wins[i].id==theSessionSaverWindow.id)
-				{
-					//ignore the SessionSaver window
-				}
-				else
-				{
-				    //save rest
-					for(var j=0;j<wins[i].tabs.length;j++)
-					{
-						theWinIdToClose = wins[i].id;				
-						url = String(wins[i].tabs[j].url);
-						if(url.indexOf(ext_id)==-1)
-						{
-							g_currentUrlText = g_currentUrlText+url+"\n";
-							var urlName = wins[i].tabs[j].title;
-							currentUrlNames = currentUrlNames+urlName+"\n";							
-						}
-					}										
-				}
-			}			
-			//urls go out of scope beyond here
-			g_sessionUrls.push(g_currentUrlText);
-			g_sessionUrlNames.push(currentUrlNames);
-			saveData();
-			if (closeLastWindow)
-			{
-				if (wins.length==2)
-				{
-					log("close2");				
-					closeWindowAndCreateNewOne(theWinIdToClose);
-				}
-				else
-				{
-					chrome.windows.remove(theWinIdToClose);			
-				}
-			}
-			
-			if (afterCallback)
-			{
-				afterCallback();
-			}
-		}); 	
-	}
-}
-
-function saveAndCloseLastWindow(sessionName)
-{
-	saveAndOptionallyCloseLastWindow(sessionName, true);
-}
-
 
 function bgpDeleteSessions(sessionName, afterCallback)
 {
@@ -1116,7 +829,7 @@ function bgpLoadSessionID(sessionID){
 	var urlText = g_sessionUrls[sessionID];
 	var links = urlText.match(/(https?:\/\/|chrome(-extension)?:\/\/|about:|file:\/\/\/)[^ \n\t\r]+/g);
 	for(var i in links){
-		openLinkInNewTab(links[i]);
+		openLinkInNewTabInLastSelectedWindow(links[i]);
 	}	
 }
 
